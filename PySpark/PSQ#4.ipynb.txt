@@ -1,0 +1,32 @@
+# Number of New Users in January 2024: Count of users who joined in January 2024.
+
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+from pyspark.sql.functions import to_date
+
+# Define the schema for the DataFrame for Users
+schema = StructType([
+    StructField("user_id", IntegerType(), True),
+    StructField("user_name", StringType(), True),
+    StructField("join_date", StringType(), True)  # Use StringType initially for the date
+])
+
+# Create data
+data = [
+    (101, "Alice", "2023-05-10"),
+    (102, "Bob", "2023-06-15"),
+    (103, "Charlie", "2023-07-20"),
+    (104, "Dana", "2023-08-25"),
+    (105, "Emily", "2024-01-30")
+]
+
+# Create the DataFrame
+df = spark.createDataFrame(data, schema=schema)
+
+# Convert the 'join_date' column to DateType
+df = df.withColumn("join_date", to_date(df["join_date"], "yyyy-MM-dd"))
+#df.show()
+
+# Filter users who joined in January 2024
+january_new_users = df.filter((col("join_date") >= "2024-01-01") & (col("join_date") <= "2024-01-31")).count()
+
+print(f"Number of New Users in January 2024: {january_new_users}")
