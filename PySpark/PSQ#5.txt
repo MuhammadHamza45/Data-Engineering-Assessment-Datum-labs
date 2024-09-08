@@ -1,0 +1,60 @@
+# Top Selling Product Category in January 2024: Product category with highest sales in January 2024.
+
+from pyspark.sql.functions import to_date, col, sum, desc
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, FloatType
+
+# Define the schema and create DataFrame for sales
+schema = StructType([
+    StructField("sale_id", IntegerType(), True),
+    StructField("product_id", StringType(), True),
+    StructField("sale_date", StringType(), True),  # Use StringType for the date initially
+    StructField("amount", FloatType(), True),
+    StructField("category_id", StringType(), True)
+])
+
+data = [
+    (1, "P001", "2024-01-01", 100.00, "C1"),
+    (2, "P002", "2024-01-05", 150.00, "C2"),
+    (3, "P001", "2024-01-10", 100.00, "C1"),
+    (4, "P003", "2024-01-15", 200.00, "C3"),
+    (5, "P002", "2024-01-20", 150.00, "C2")
+]
+
+df_sales = spark.createDataFrame(data, schema=schema)
+
+# Define the schema and create DataFrame for category
+schema_cat = StructType([
+    StructField("category_id", StringType(), True),
+    StructField("category_name", StringType(), True)
+])
+
+# Create data
+data_cat = [
+    ("C1", "Electronics"),
+    ("C2", "Clothing"),
+    ("C3", "HomeAppliances")
+]
+
+# Create the DataFrame
+df_category = spark.createDataFrame(data_cat, schema=schema_cat)
+
+# Convert sale_date col to date type
+df_sales = df_sales.withColumn("sale_date", to_date(df_sales["sale_date"], "yyyy-MM-dd"))
+#df.show()
+
+# Filter data for January 2024
+filter_data = df_sales.filter((col("sale_date") >= "2024-01-01") & (col("sale_date") <= "2024-01-31"))
+#filter_data.show()
+
+# Rename the 'amount' column in sales DataFrame to avoid ambiguity
+filter_data = filter_data.withColumnRenamed("amount", "sale_amount")
+
+# sales data by category 
+sales_cat = filter_data.join(df_category, "category_id")
+#sales_cat.show()
+
+# average sale amount per category
+avg_sale_cat = sales_cat.groupBy("category_id", "category_name").agg(sum("sale_amount").alias("TotalSales"))
+Top_Selling_Pro_Cat = avg_sale_cat.orderBy(desc("TotalSales")).limit(1)
+#Top_Selling_Pro_Cat.show()
+print(f"Top Selling Product Category in January 2024: {Top_Selling_Pro_Cat.collect()[0]['category_name']}")
